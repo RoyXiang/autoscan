@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/alecthomas/kong v0.2.16
+	github.com/bbengfort/x v0.0.0-20200707133032-4b95decd19e6
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/justinas/alice v1.2.0
 	github.com/l3uddz/bernard v0.5.1

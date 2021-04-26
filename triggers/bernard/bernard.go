@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/bbengfort/x/pid"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	lowe "github.com/l3uddz/bernard"
@@ -280,6 +282,13 @@ func (d daemon) startAutoSync() error {
 				if err != nil {
 					return fmt.Errorf("%v: moving scans to processor: %v: %w",
 						drive.ID, err, autoscan.ErrFatal)
+				}
+
+				plexdrivePid := pid.New(pid.Path("plexdrive.pid"))
+				if err := plexdrivePid.Load(); err == nil {
+					if err := plexdrivePid.Signal(syscall.SIGHUP); err == nil {
+						l.Info().Msg("SIGHUP sent to plexdrive")
+					}
 				}
 
 				l.Info().
