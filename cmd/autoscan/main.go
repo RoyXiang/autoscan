@@ -212,7 +212,7 @@ func main() {
 	// Set authentication. If none and running at least one webhook -> warn user.
 	authHandler := triggers.WithAuth(c.Auth.Username, c.Auth.Password)
 	if c.Auth.Username == "" || c.Auth.Password == "" {
-		log.Warn().Msg("Webhooks running without authentication")
+		log.Debug().Msg("Webhooks running without authentication")
 	}
 
 	// daemon triggers
