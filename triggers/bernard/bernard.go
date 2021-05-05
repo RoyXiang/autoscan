@@ -284,17 +284,17 @@ func (d daemon) startAutoSync() error {
 						drive.ID, err, autoscan.ErrFatal)
 				}
 
+				l.Info().
+					Int("added", task.added).
+					Int("removed", task.removed).
+					Msg("Scan moved to processor")
+
 				plexdrivePid := pid.New(pid.Path("plexdrive.pid"))
 				if err := plexdrivePid.Load(); err == nil {
 					if err := plexdrivePid.Signal(syscall.SIGHUP); err == nil {
 						l.Info().Msg("SIGHUP sent to plexdrive")
 					}
 				}
-
-				l.Info().
-					Int("added", task.added).
-					Int("removed", task.removed).
-					Msg("Scan moved to processor")
 			}
 
 			return nil
