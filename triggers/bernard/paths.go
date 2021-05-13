@@ -2,6 +2,7 @@ package bernard
 
 import (
 	"fmt"
+	"github.com/cloudbox/autoscan"
 	"github.com/l3uddz/bernard"
 	"github.com/l3uddz/bernard/datastore"
 	"github.com/l3uddz/bernard/datastore/sqlite"
@@ -17,6 +18,11 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 	var paths Paths
 
 	hook := func(drive datastore.Drive, files []datastore.File, folders []datastore.Folder, removed []string) error {
+		l := autoscan.GetLogger("error").With().
+			Str("trigger", "bernard").
+			Str("drive_id", driveID).
+			Logger()
+
 		// get folders from diff (that we are interested in)
 		parents, err := getDiffFolders(store, driveID, diff)
 		if err != nil {
@@ -31,7 +37,8 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		for _, folder := range rootNewFolders {
 			p, err := getFolderPath(store, driveID, folder.ID, parents.FolderMaps.Current)
 			if err != nil {
-				return fmt.Errorf("building folder path: %v: %w", folder.ID, err)
+				l.Error().Msgf("building folder path: %v: %w", folder.ID, err)
+				continue
 			}
 
 			paths.NewFolders = append(paths.NewFolders, p)
@@ -41,7 +48,8 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		for _, folder := range rootOldFolders {
 			p, err := getFolderPath(store, driveID, folder.ID, parents.FolderMaps.Old)
 			if err != nil {
-				return fmt.Errorf("building old folder path: %v: %w", folder.ID, err)
+				l.Error().Msgf("building old folder path: %v: %w", folder.ID, err)
+				continue
 			}
 
 			paths.OldFolders = append(paths.OldFolders, p)
