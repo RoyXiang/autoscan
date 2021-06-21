@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/bbengfort/x/pid"
+	"os"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -13,6 +13,7 @@ import (
 	ds "github.com/l3uddz/bernard/datastore"
 	"github.com/l3uddz/bernard/datastore/sqlite"
 	"github.com/m-rots/stubbs"
+	"github.com/mitchellh/go-ps"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 
@@ -21,6 +22,8 @@ import (
 
 const (
 	maxSyncRetries = 5
+	rcloneExecutable = "rclone"
+	plexdriveExecutable = "plexdrive"
 )
 
 type Config struct {
@@ -289,10 +292,20 @@ func (d daemon) startAutoSync() error {
 					Int("removed", task.removed).
 					Msg("Scan moved to processor")
 
-				plexdrivePid := pid.New(pid.Path("plexdrive.pid"))
-				if err := plexdrivePid.Load(); err == nil {
-					if err := plexdrivePid.Signal(syscall.SIGHUP); err == nil {
-						l.Info().Msg("SIGHUP sent to plexdrive")
+				processes, _ := ps.Processes()
+				for _, process := range processes {
+					if process.Executable() == rcloneExecutable {
+						parentProc, _ := ps.FindProcess(process.PPid())
+						if parentProc.Executable() != rcloneExecutable {
+							proc, _ := os.FindProcess(process.Pid())
+							_ = proc.Signal(syscall.SIGHUP)
+						}
+					} else if process.Executable() == plexdriveExecutable {
+						parentProc, _ := ps.FindProcess(process.PPid())
+						if parentProc.Executable() != plexdriveExecutable {
+							proc, _ := os.FindProcess(process.Pid())
+							_ = proc.Signal(syscall.SIGHUP)
+						}
 					}
 				}
 			}
