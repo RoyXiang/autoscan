@@ -3,8 +3,16 @@ package autoscan
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"path"
 	"strings"
+	"syscall"
+
+	"github.com/mitchellh/go-ps"
+)
+
+const (
+	rcloneExecutable = "rclone"
 )
 
 func JoinURL(base string, paths ...string) string {
@@ -22,4 +30,17 @@ func DSN(path string, q url.Values) string {
 	}
 
 	return u.String()
+}
+
+func FlushRcloneCache() {
+	processes, _ := ps.Processes()
+	for _, process := range processes {
+		if process.Executable() == rcloneExecutable {
+			parentProc, _ := ps.FindProcess(process.PPid())
+			if parentProc.Executable() != rcloneExecutable {
+				proc, _ := os.FindProcess(process.Pid())
+				_ = proc.Signal(syscall.SIGHUP)
+			}
+		}
+	}
 }

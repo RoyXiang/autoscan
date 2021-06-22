@@ -7,3 +7,4 @@ dist/
 *.log
 /autoscan
 /config.yml
+/.envrc
