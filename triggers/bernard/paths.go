@@ -26,7 +26,8 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		// get folders from diff (that we are interested in)
 		parents, err := getDiffFolders(store, driveID, diff)
 		if err != nil {
-			return fmt.Errorf("getting parents: %w", err)
+			l.Error().Msgf("getting parents: %w", err)
+			return nil
 		}
 
 		// get roots from folders
