@@ -10,7 +10,6 @@ require (
 	github.com/l3uddz/bernard v0.5.1
 	github.com/m-rots/stubbs v1.1.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
-	github.com/mitchellh/go-ps v1.0.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/oriser/regroup v0.0.0-20201024192559-010c434ff8f3
 	github.com/pkg/errors v0.9.1 // indirect

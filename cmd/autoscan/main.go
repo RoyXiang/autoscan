@@ -438,7 +438,7 @@ func main() {
 				Err(err).
 				Msg("Not all anchor files are available, retrying in 15 seconds...")
 
-			autoscan.FlushRcloneCache()
+			autoscan.StartRclonePolling()
 
 			time.Sleep(15 * time.Second)
 

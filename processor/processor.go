@@ -74,6 +74,8 @@ func (p *Processor) CheckAvailability(targets []autoscan.Target) error {
 func (p *Processor) callTargets(targets []autoscan.Target, scan autoscan.Scan) error {
 	g := new(errgroup.Group)
 
+	autoscan.StopRclonePolling()
+
 	for _, target := range targets {
 		target := target
 		g.Go(func() error {

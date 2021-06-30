@@ -287,7 +287,7 @@ func (d daemon) startAutoSync() error {
 					Int("removed", task.removed).
 					Msg("Scan moved to processor")
 
-				autoscan.FlushRcloneCache()
+				autoscan.StartRclonePolling()
 			}
 
 			return nil
