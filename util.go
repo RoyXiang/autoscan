@@ -3,6 +3,7 @@ package autoscan
 import (
 	"fmt"
 	"net/url"
+	"os/exec"
 	"path"
 	"strings"
 )
@@ -22,4 +23,9 @@ func DSN(path string, q url.Values) string {
 	}
 
 	return u.String()
+}
+
+func RcloneForget(dir string) {
+	cmd := exec.Command("rclone", "rc", "vfs/forget", fmt.Sprintf("dir=%s", dir))
+	_ = cmd.Run()
 }

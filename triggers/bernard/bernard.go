@@ -334,6 +334,8 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			continue
 		}
 
+		autoscan.RcloneForget(p)
+
 		// add scan task
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(rewritten),
@@ -360,6 +362,8 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		if !drive.Allowed(rewritten) {
 			continue
 		}
+
+		autoscan.RcloneForget(p)
 
 		// add scan task
 		task.scans = append(task.scans, autoscan.Scan{
