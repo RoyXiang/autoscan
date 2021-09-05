@@ -25,7 +25,21 @@ func DSN(path string, q url.Values) string {
 	return u.String()
 }
 
-func RcloneForget(dir string) {
-	cmd := exec.Command("rclone", "rc", "vfs/forget", fmt.Sprintf("dir=%s", dir))
+func RCloneForget(directories, files map[string]struct{}) {
+	args := []string{"rc", "vfs/forget"}
+
+	number := 1
+	for dir := range directories {
+		args = append(args, fmt.Sprintf("dir%d=%s", number, dir))
+		number++
+	}
+
+	number = 1
+	for file := range files {
+		args = append(args, fmt.Sprintf("file%d=%s", number, file))
+		number++
+	}
+
+	cmd := exec.Command("rclone", args...)
 	_ = cmd.Run()
 }

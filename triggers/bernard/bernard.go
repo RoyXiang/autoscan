@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 	"time"
 
@@ -310,12 +311,16 @@ type scanTask struct {
 }
 
 func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
-	pathMap := make(map[string]int)
+	var exists = struct{}{}
+	pathMap := make(map[string]struct{})
 	task := &scanTask{
 		scans:   make([]autoscan.Scan, 0),
 		added:   0,
 		removed: 0,
 	}
+
+	directories := make(map[string]struct{})
+	files := make(map[string]struct{})
 
 	for _, p := range paths.NewFolders {
 		// rewrite path
@@ -326,15 +331,23 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			// already a scan task present
 			continue
 		} else {
-			pathMap[rewritten] = 1
+			pathMap[rewritten] = exists
 		}
 
 		// is this path allowed?
 		if !drive.Allowed(rewritten) {
+			if contents, err := ioutil.ReadDir(p); err == nil {
+				for _, file := range contents {
+					if file.IsDir() {
+						continue
+					}
+					files[filepath.Join(p, file.Name())] = exists
+				}
+			}
 			continue
 		}
 
-		autoscan.RcloneForget(p)
+		directories[p] = exists
 
 		// add scan task
 		task.scans = append(task.scans, autoscan.Scan{
@@ -355,15 +368,23 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			// already a scan task present
 			continue
 		} else {
-			pathMap[rewritten] = 1
+			pathMap[rewritten] = exists
 		}
 
 		// is this path allowed?
 		if !drive.Allowed(rewritten) {
+			if contents, err := ioutil.ReadDir(p); err == nil {
+				for _, file := range contents {
+					if file.IsDir() {
+						continue
+					}
+					files[filepath.Join(p, file.Name())] = exists
+				}
+			}
 			continue
 		}
 
-		autoscan.RcloneForget(p)
+		directories[p] = exists
 
 		// add scan task
 		task.scans = append(task.scans, autoscan.Scan{
@@ -373,6 +394,10 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		})
 
 		task.removed++
+	}
+
+	if task.added > 0 || task.removed > 0 {
+		autoscan.RCloneForget(directories, files)
 	}
 
 	return task
