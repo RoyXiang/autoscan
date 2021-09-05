@@ -396,7 +396,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		task.removed++
 	}
 
-	if task.added > 0 || task.removed > 0 {
+	if len(directories) > 0 || len(files) > 0 {
 		autoscan.RCloneForget(directories, files)
 	}
 
