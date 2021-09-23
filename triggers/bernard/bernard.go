@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"time"
 
@@ -22,6 +21,10 @@ const (
 	maxSyncRetries = 5
 )
 
+var (
+	exists = struct{}{}
+)
+
 type Config struct {
 	AccountPath  string             `yaml:"account"`
 	CronSchedule string             `yaml:"cron"`
@@ -32,11 +35,12 @@ type Config struct {
 	Include      []string           `yaml:"include"`
 	Exclude      []string           `yaml:"exclude"`
 	Drives       []struct {
-		ID         string             `yaml:"id"`
-		TimeOffset time.Duration      `yaml:"time-offset"`
-		Rewrite    []autoscan.Rewrite `yaml:"rewrite"`
-		Include    []string           `yaml:"include"`
-		Exclude    []string           `yaml:"exclude"`
+		ID            string             `yaml:"id"`
+		TimeOffset    time.Duration      `yaml:"time-offset"`
+		Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
+		Include       []string           `yaml:"include"`
+		Exclude       []string           `yaml:"exclude"`
+		RCloneInclude []string           `yaml:"rclone-include"`
 	} `yaml:"drives"`
 }
 
@@ -86,11 +90,17 @@ func New(c Config, db *sql.DB) (autoscan.Trigger, error) {
 			return time.Now().Add(c.TimeOffset)
 		}
 
+		rcloneInclude := make(map[string]struct{})
+		for _, path := range d.RCloneInclude {
+			rcloneInclude[path] = exists
+		}
+
 		drives = append(drives, drive{
-			ID:       d.ID,
-			Rewriter: rewriter,
-			Allowed:  filterer,
-			ScanTime: scanTime,
+			ID:            d.ID,
+			Rewriter:      rewriter,
+			Allowed:       filterer,
+			RCloneInclude: rcloneInclude,
+			ScanTime:      scanTime,
 		})
 	}
 
@@ -119,10 +129,11 @@ func New(c Config, db *sql.DB) (autoscan.Trigger, error) {
 }
 
 type drive struct {
-	ID       string
-	Rewriter autoscan.Rewriter
-	Allowed  autoscan.Filterer
-	ScanTime func() time.Time
+	ID            string
+	Rewriter      autoscan.Rewriter
+	Allowed       autoscan.Filterer
+	RCloneInclude map[string]struct{}
+	ScanTime      func() time.Time
 }
 
 type daemon struct {
@@ -311,7 +322,6 @@ type scanTask struct {
 }
 
 func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
-	var exists = struct{}{}
 	pathMap := make(map[string]struct{})
 	task := &scanTask{
 		scans:   make([]autoscan.Scan, 0),
@@ -320,7 +330,6 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 	}
 
 	directories := make(map[string]struct{})
-	files := make(map[string]struct{})
 
 	for _, p := range paths.NewFolders {
 		// rewrite path
@@ -336,14 +345,6 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 
 		// is this path allowed?
 		if !drive.Allowed(rewritten) {
-			if contents, err := ioutil.ReadDir(p); err == nil {
-				for _, file := range contents {
-					if file.IsDir() {
-						continue
-					}
-					files[filepath.Join(p, file.Name())] = exists
-				}
-			}
 			continue
 		}
 
@@ -373,14 +374,6 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 
 		// is this path allowed?
 		if !drive.Allowed(rewritten) {
-			if contents, err := ioutil.ReadDir(p); err == nil {
-				for _, file := range contents {
-					if file.IsDir() {
-						continue
-					}
-					files[filepath.Join(p, file.Name())] = exists
-				}
-			}
 			continue
 		}
 
@@ -396,8 +389,8 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		task.removed++
 	}
 
-	if len(directories) > 0 || len(files) > 0 {
-		autoscan.RCloneForget(directories, files)
+	if len(directories) > 0 {
+		autoscan.RCloneForget(directories, drive.RCloneInclude)
 	}
 
 	return task
