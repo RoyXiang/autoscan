@@ -3,8 +3,10 @@ package autoscan
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -30,6 +32,13 @@ func RCloneForget(directories, files map[string]struct{}) {
 
 	number := 1
 	for dir := range directories {
+		for {
+			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				dir = filepath.Clean(filepath.Join(dir, ".."))
+				continue
+			}
+			break
+		}
 		args = append(args, fmt.Sprintf("dir%d=%s", number, dir))
 		number++
 	}
