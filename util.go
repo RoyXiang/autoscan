@@ -32,14 +32,16 @@ func RCloneForget(directories, files map[string]struct{}) {
 
 	number := 1
 	for dir := range directories {
+		target := dir
 		for {
 			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				target = dir
 				dir = filepath.Clean(filepath.Join(dir, ".."))
 				continue
 			}
 			break
 		}
-		args = append(args, fmt.Sprintf("dir%d=%s", number, dir))
+		args = append(args, fmt.Sprintf("dir%d=%s", number, target))
 		number++
 	}
 
