@@ -185,6 +185,8 @@ func (s *syncJob) Run() {
 		s.log.Error().
 			Err(err).
 			Msg("Fatal error occurred while syncing drive, drive has been stopped...")
+
+		s.cron.Remove(s.jobID)
 		return
 
 	case err != nil:
@@ -202,6 +204,8 @@ func (s *syncJob) Run() {
 			Errs("error", s.errors).
 			Int("attempts", s.attempts).
 			Msg("Consecutive errors occurred while syncing drive, drive has been stopped...")
+
+		s.cron.Remove(s.jobID)
 	}
 }
 
