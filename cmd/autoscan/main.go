@@ -429,9 +429,9 @@ func main() {
 		case errors.Is(err, autoscan.ErrNoScans):
 			// No scans currently available, let's wait a couple of seconds
 			log.Trace().
-				Msg("No scans are available, retrying in 15 seconds...")
+				Msg(fmt.Sprintf("No scans are available, retrying in %s...", c.ScanDelay))
 
-			time.Sleep(15 * time.Second)
+			time.Sleep(c.ScanDelay)
 
 		case errors.Is(err, autoscan.ErrAnchorUnavailable):
 			log.Error().
