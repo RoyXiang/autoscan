@@ -9,6 +9,7 @@ builds:
     goos:
       - linux
       - darwin
+      - freebsd
     main: ./cmd/autoscan
     goarch:
       - amd64
@@ -23,6 +24,16 @@ builds:
       - -X "main.Timestamp={{ .Timestamp }}"
     flags:
       - -trimpath
+    ignore:
+      - goos: freebsd
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm
+
+# MacOS Universal Binaries
+universal_binaries:
+  -
+    replace: true
 
 # Archive
 archives:
@@ -39,6 +50,10 @@ checksum:
 snapshot:
   name_template: "{{ .Major }}.{{ .Minor }}.{{ .Patch }}-dev+{{ .ShortCommit }}"
 
+# Release
+release:
+  prerelease: auto
+
 # Changelog
 changelog:
   filters:
@@ -46,3 +61,4 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^Merge branch"
+      - "^Merge tag"
