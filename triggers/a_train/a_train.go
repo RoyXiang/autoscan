@@ -11,9 +11,8 @@ import (
 )
 
 type Drive struct {
-	ID            string             `yaml:"id"`
-	Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
-	RCloneInclude []string           `yaml:"rclone-include"`
+	ID      string             `yaml:"id"`
+	Rewrite []autoscan.Rewrite `yaml:"rewrite"`
 }
 
 type Config struct {
@@ -28,12 +27,7 @@ type ATrainRewriter = func(drive string, input string) string
 // New creates an autoscan-compatible HTTP Trigger for A-Train webhooks.
 func New(c Config) (autoscan.HTTPTrigger, error) {
 	rewrites := make(map[string]autoscan.Rewriter)
-	files := make(map[string]struct{})
 	for _, drive := range c.Drives {
-		for _, file := range drive.RCloneInclude {
-			files[file] = exists
-		}
-
 		rewriter, err := autoscan.NewRewriter(append(drive.Rewrite, c.Rewrite...))
 		if err != nil {
 			return nil, err
@@ -61,7 +55,6 @@ func New(c Config) (autoscan.HTTPTrigger, error) {
 			callback: callback,
 			priority: c.Priority,
 			rewrite:  rewriter,
-			files:    files,
 		}
 	}
 
@@ -72,7 +65,6 @@ type handler struct {
 	priority int
 	rewrite  ATrainRewriter
 	callback autoscan.ProcessorFunc
-	files    map[string]struct{}
 }
 
 type atrainEvent struct {
@@ -128,7 +120,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		rlog.Info().Str("path", scan.Folder).Msg("Scan moved to processor")
 	}
 	if len(directories) > 0 {
-		autoscan.RCloneForget(directories, h.files)
+		autoscan.RCloneForget(directories)
 	}
 
 	rw.WriteHeader(http.StatusOK)

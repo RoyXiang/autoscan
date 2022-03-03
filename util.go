@@ -27,7 +27,7 @@ func DSN(path string, q url.Values) string {
 	return u.String()
 }
 
-func RCloneForget(directories, files map[string]struct{}) {
+func RCloneForget(directories map[string]struct{}) {
 	args := []string{"rc", "vfs/forget"}
 
 	number := 1
@@ -42,12 +42,6 @@ func RCloneForget(directories, files map[string]struct{}) {
 			break
 		}
 		args = append(args, fmt.Sprintf("dir%d=%s", number, target))
-		number++
-	}
-
-	number = 1
-	for file := range files {
-		args = append(args, fmt.Sprintf("file%d=%s", number, file))
 		number++
 	}
 
