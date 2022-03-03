@@ -97,6 +97,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rlog.Trace().Interface("event", event).Msg("Received JSON body")
 
 	scans := make([]autoscan.Scan, 0)
+	directories := make(map[string]struct{}, len(event.Created)+len(event.Deleted))
 
 	for _, path := range event.Created {
 		scans = append(scans, autoscan.Scan{
@@ -104,6 +105,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			Priority: h.priority,
 			Time:     now(),
 		})
+		directories[path] = exists
 	}
 
 	for _, path := range event.Deleted {
@@ -112,6 +114,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			Priority: h.priority,
 			Time:     now(),
 		})
+		directories[path] = exists
 	}
 
 	err = h.callback(scans...)
@@ -121,9 +124,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	directories := make(map[string]struct{}, len(scans))
 	for _, scan := range scans {
-		directories[scan.Folder] = exists
 		rlog.Info().Str("path", scan.Folder).Msg("Scan moved to processor")
 	}
 	if len(directories) > 0 {
