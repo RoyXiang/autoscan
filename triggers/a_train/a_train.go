@@ -89,24 +89,32 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rlog.Trace().Interface("event", event).Msg("Received JSON body")
 
 	scans := make([]autoscan.Scan, 0)
-	directories := make(map[string]struct{}, len(event.Created)+len(event.Deleted))
+	pathMap := make(map[string]string)
 
 	for _, path := range event.Created {
-		scans = append(scans, autoscan.Scan{
+		scan := autoscan.Scan{
 			Folder:   h.rewrite(drive, path),
 			Priority: h.priority,
 			Time:     now(),
-		})
-		directories[path] = exists
+		}
+		if _, ok := pathMap[scan.Folder]; ok {
+			continue
+		}
+		pathMap[scan.Folder] = path
+		scans = append(scans, scan)
 	}
 
 	for _, path := range event.Deleted {
-		scans = append(scans, autoscan.Scan{
+		scan := autoscan.Scan{
 			Folder:   h.rewrite(drive, path),
 			Priority: h.priority,
 			Time:     now(),
-		})
-		directories[path] = exists
+		}
+		if _, ok := pathMap[scan.Folder]; ok {
+			continue
+		}
+		pathMap[scan.Folder] = path
+		scans = append(scans, scan)
 	}
 
 	err = h.callback(scans...)
@@ -119,12 +127,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	for _, scan := range scans {
 		rlog.Info().Str("path", scan.Folder).Msg("Scan moved to processor")
 	}
-	if len(directories) > 0 {
-		autoscan.RCloneForget(directories)
+	if len(pathMap) > 0 {
+		autoscan.RCloneForget(pathMap)
 	}
 
 	rw.WriteHeader(http.StatusOK)
 }
 
 var now = time.Now
-var exists = struct{}{}

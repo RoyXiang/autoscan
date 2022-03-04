@@ -314,18 +314,14 @@ type scanTask struct {
 }
 
 func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
-	pathMap := make(map[string]struct{})
+	pathMap := make(map[string]string)
 	task := &scanTask{
 		scans:   make([]autoscan.Scan, 0),
 		added:   0,
 		removed: 0,
 	}
 
-	directories := make(map[string]struct{})
-
 	for _, p := range paths.NewFolders {
-		directories[p] = exists
-
 		// rewrite path
 		rewritten := drive.Rewriter(p)
 
@@ -334,7 +330,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			// already a scan task present
 			continue
 		} else {
-			pathMap[rewritten] = exists
+			pathMap[rewritten] = p
 		}
 
 		// is this path allowed?
@@ -353,8 +349,6 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 	}
 
 	for _, p := range paths.OldFolders {
-		directories[p] = exists
-
 		// rewrite path
 		rewritten := drive.Rewriter(p)
 
@@ -363,7 +357,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			// already a scan task present
 			continue
 		} else {
-			pathMap[rewritten] = exists
+			pathMap[rewritten] = p
 		}
 
 		// is this path allowed?
@@ -381,8 +375,8 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		task.removed++
 	}
 
-	if len(directories) > 0 {
-		autoscan.RCloneForget(directories)
+	if len(pathMap) > 0 {
+		autoscan.RCloneForget(pathMap)
 	}
 
 	return task
