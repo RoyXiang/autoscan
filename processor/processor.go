@@ -87,6 +87,7 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 			directories[scan.Folder] = struct{}{}
 			result = append(result, scan)
 		}
+		scans = result
 	}
 	return p.store.Upsert(scans)
 }
