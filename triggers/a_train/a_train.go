@@ -89,32 +89,23 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rlog.Trace().Interface("event", event).Msg("Received JSON body")
 
 	scans := make([]autoscan.Scan, 0)
-	pathMap := make(map[string]string)
 
 	for _, path := range event.Created {
-		scan := autoscan.Scan{
+		scans = append(scans, autoscan.Scan{
 			Folder:   h.rewrite(drive, path),
+			Path:     path,
 			Priority: h.priority,
 			Time:     now(),
-		}
-		if _, ok := pathMap[scan.Folder]; ok {
-			continue
-		}
-		pathMap[scan.Folder] = path
-		scans = append(scans, scan)
+		})
 	}
 
 	for _, path := range event.Deleted {
-		scan := autoscan.Scan{
+		scans = append(scans, autoscan.Scan{
 			Folder:   h.rewrite(drive, path),
+			Path:     path,
 			Priority: h.priority,
 			Time:     now(),
-		}
-		if _, ok := pathMap[scan.Folder]; ok {
-			continue
-		}
-		pathMap[scan.Folder] = path
-		scans = append(scans, scan)
+		})
 	}
 
 	err = h.callback(scans...)
@@ -126,9 +117,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	for _, scan := range scans {
 		rlog.Info().Str("path", scan.Folder).Msg("Scan moved to processor")
-	}
-	if len(pathMap) > 0 {
-		autoscan.RCloneForget(pathMap)
 	}
 
 	rw.WriteHeader(http.StatusOK)

@@ -21,10 +21,6 @@ const (
 	maxSyncRetries = 5
 )
 
-var (
-	exists = struct{}{}
-)
-
 type Config struct {
 	AccountPath  string             `yaml:"account"`
 	CronSchedule string             `yaml:"cron"`
@@ -314,7 +310,7 @@ type scanTask struct {
 }
 
 func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
-	pathMap := make(map[string]string)
+	pathMap := make(map[string]int)
 	task := &scanTask{
 		scans:   make([]autoscan.Scan, 0),
 		added:   0,
@@ -330,7 +326,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			// already a scan task present
 			continue
 		} else {
-			pathMap[rewritten] = p
+			pathMap[rewritten] = 1
 		}
 
 		// is this path allowed?
@@ -341,6 +337,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		// add scan task
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(rewritten),
+			Path:     p,
 			Priority: d.priority,
 			Time:     drive.ScanTime(),
 		})
@@ -357,7 +354,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			// already a scan task present
 			continue
 		} else {
-			pathMap[rewritten] = p
+			pathMap[rewritten] = 1
 		}
 
 		// is this path allowed?
@@ -368,15 +365,12 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		// add scan task
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(rewritten),
+			Path:     p,
 			Priority: d.priority,
 			Time:     drive.ScanTime(),
 		})
 
 		task.removed++
-	}
-
-	if len(pathMap) > 0 {
-		autoscan.RCloneForget(pathMap)
 	}
 
 	return task

@@ -3,10 +3,8 @@ package autoscan
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -27,29 +25,13 @@ func DSN(path string, q url.Values) string {
 	return u.String()
 }
 
-func RCloneForget(pathMap map[string]string) {
-	args := []string{"rc", "vfs/forget"}
+func RCloneForget(directories []string) {
+	args := make([]string, 0, len(directories)+2)
+	args = append(args, "rc", "vfs/forget")
 
-	number := 1
-	for absolute, relative := range pathMap {
-		target := relative
-		isFile := false
-		for {
-			if info, err := os.Stat(absolute); os.IsNotExist(err) {
-				isFile = true
-				target = relative
-				absolute = filepath.Clean(filepath.Join(absolute, ".."))
-				relative = filepath.Clean(filepath.Join(relative, ".."))
-			} else if !info.IsDir() {
-				isFile = true
-			}
-			break
-		}
-		if isFile {
-			args = append(args, fmt.Sprintf("file%d=%s", number, target))
-		} else {
-			args = append(args, fmt.Sprintf("dir%d=%s", number, target))
-		}
+	i := 1
+	for _, dir := range directories {
+		args = append(args, fmt.Sprintf("dir%d=%s", i, dir))
 	}
 
 	cmd := exec.Command("rclone", args...)

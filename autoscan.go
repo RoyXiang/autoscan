@@ -14,6 +14,7 @@ import (
 // The Scan is used across Triggers, Targets and the Processor.
 type Scan struct {
 	Folder   string
+	Path     string
 	Priority int
 	Time     time.Time
 }
