@@ -53,9 +53,11 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 			if relativePath == "" {
 				relativePath = folder
 			}
+			name := folder
 			for {
-				if info, err := os.Stat(folder); os.IsNotExist(err) {
-					folder = filepath.Clean(filepath.Join(folder, ".."))
+				if info, err := os.Stat(name); os.IsNotExist(err) {
+					folder = name
+					name = filepath.Clean(filepath.Join(name, ".."))
 					relativePath = filepath.Clean(filepath.Join(relativePath, ".."))
 					continue
 				} else if !info.IsDir() {
@@ -66,7 +68,6 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 					directories[folder] = struct{}{}
 					realScans = append(realScans, autoscan.Scan{
 						Folder:   folder,
-						Path:     relativePath,
 						Priority: scan.Priority,
 						Time:     scan.Time,
 					})
