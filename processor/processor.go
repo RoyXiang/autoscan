@@ -48,11 +48,12 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 		// forget rclone VFS cache
 		uniqueness := make(map[string]struct{}, len(scans))
 		args := make([]string, 0, len(scans))
-		for _, scan := range scans {
+		for i, scan := range scans {
 			if scan.Path == "" {
 				continue
 			}
-			folder, relativePath, isFolder := scan.Folder, scan.Path, false
+			scans[i].IsFolder, scans[i].Exists = false, false
+			folder, relativePath := scan.Folder, scan.Path
 			for {
 				if info, err := os.Stat(folder); os.IsNotExist(err) {
 					folder = filepath.Dir(folder)
@@ -60,16 +61,19 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 					continue
 				} else if info.IsDir() {
 					if folder == scan.Folder {
-						isFolder = true
+						scans[i].IsFolder, scans[i].Exists = true, true
 					}
 				} else {
+					if folder == scan.Folder {
+						scans[i].Exists = true
+					}
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
 				}
 				if _, ok := uniqueness[relativePath]; !ok {
 					uniqueness[relativePath] = struct{}{}
 					args = append(args, relativePath)
-					if isFolder {
+					if scans[i].IsFolder {
 						// refresh on parent as well incase the folder was trashed
 						parent := filepath.Dir(relativePath)
 						if _, ok = uniqueness[parent]; !ok {
@@ -89,7 +93,13 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 		result := make([]autoscan.Scan, 0, len(scans))
 		for _, scan := range scans {
 			if info, err := os.Stat(scan.Folder); os.IsNotExist(err) {
-				continue
+				if !scan.Exists {
+					// the item never exists
+					continue
+				} else if !scan.IsFolder {
+					// a file was trashed
+					scan.Folder = filepath.Dir(scan.Folder)
+				}
 			} else if !info.IsDir() {
 				scan.Folder = filepath.Dir(scan.Folder)
 			}

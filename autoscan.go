@@ -15,6 +15,8 @@ import (
 type Scan struct {
 	Folder   string
 	Path     string
+	IsFolder bool
+	Exists   bool
 	Priority int
 	Time     time.Time
 }
