@@ -52,19 +52,31 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 			if scan.Path == "" {
 				continue
 			}
-			folder, relativePath := scan.Folder, scan.Path
+			folder, relativePath, isFolder := scan.Folder, scan.Path, false
 			for {
 				if info, err := os.Stat(folder); os.IsNotExist(err) {
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
 					continue
-				} else if !info.IsDir() {
+				} else if info.IsDir() {
+					if folder == scan.Folder {
+						isFolder = true
+					}
+				} else {
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
 				}
-				if _, ok := uniqueness[folder]; !ok {
-					uniqueness[folder] = struct{}{}
+				if _, ok := uniqueness[relativePath]; !ok {
+					uniqueness[relativePath] = struct{}{}
 					args = append(args, relativePath)
+					if isFolder {
+						// refresh on parent as well incase the folder was trashed
+						parent := filepath.Dir(relativePath)
+						if _, ok = uniqueness[parent]; !ok {
+							uniqueness[parent] = struct{}{}
+							args = append(args, parent)
+						}
+					}
 				}
 				break
 			}
