@@ -74,9 +74,13 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 					if folder == scan.Folder {
 						info.Exists = true
 					}
-					folder = filepath.Dir(folder)
-					relativePath = filepath.Dir(relativePath)
+					arg = filepath.Dir(relativePath)
 				}
+				infoMap[scan.Folder] = info
+				if _, ok := uniqueness[arg]; ok {
+					break
+				}
+				uniqueness[arg] = struct{}{}
 				if !info.Exists || info.IsFolder {
 					arg = fmt.Sprintf("dir%d=%s", argc, arg)
 				} else {
@@ -84,7 +88,6 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 				}
 				argc++
 				argv = append(argv, arg)
-				infoMap[scan.Folder] = info
 				break
 			}
 		}
