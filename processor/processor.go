@@ -53,15 +53,16 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 		// forget rclone VFS cache
 		infoMap := make(map[string]ScanInfo, len(scans))
 		uniqueness := make(map[string]struct{}, len(scans))
-		args := make([]string, 0, len(scans))
+		argc, argv := 1, make([]string, 0, len(scans))
 		for _, scan := range scans {
 			if scan.Path == "" {
 				continue
 			}
 			info := ScanInfo{Exists: false, IsFolder: false}
-			folder, relativePath := scan.Folder, scan.Path
+			folder, relativePath, arg := scan.Folder, scan.Path, scan.Path
 			for {
 				if fileInfo, err := os.Stat(folder); os.IsNotExist(err) {
+					arg = relativePath
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
 					continue
@@ -76,24 +77,19 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
 				}
-				if _, ok := uniqueness[relativePath]; !ok {
-					uniqueness[relativePath] = struct{}{}
-					args = append(args, relativePath)
-					if info.IsFolder {
-						// refresh on parent as well incase the folder was trashed
-						parent := filepath.Dir(relativePath)
-						if _, ok = uniqueness[parent]; !ok {
-							uniqueness[parent] = struct{}{}
-							args = append(args, parent)
-						}
-					}
+				if !info.Exists || info.IsFolder {
+					arg = fmt.Sprintf("dir%d=%s", argc, arg)
+				} else {
+					arg = fmt.Sprintf("file%d=%s", argc, arg)
 				}
+				argc++
+				argv = append(argv, arg)
 				infoMap[scan.Folder] = info
 				break
 			}
 		}
-		if len(args) > 0 {
-			autoscan.RcloneRefresh(args)
+		if len(argv) > 0 {
+			autoscan.RcloneForget(argv)
 		}
 		// check if scans are duplicate
 		uniqueness = make(map[string]struct{}, len(scans))

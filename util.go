@@ -25,15 +25,8 @@ func DSN(path string, q url.Values) string {
 	return u.String()
 }
 
-func RcloneRefresh(directories []string) {
-	args := make([]string, 0, len(directories)+2)
-	args = append(args, "rc", "vfs/refresh")
-
-	i := 1
-	for _, dir := range directories {
-		args = append(args, fmt.Sprintf("dir%d=%s", i, dir))
-	}
-
+func RcloneForget(args []string) {
+	args = append([]string{"rc", "vfs/forget"}, args...)
 	cmd := exec.Command("rclone", args...)
 	_ = cmd.Run()
 }
