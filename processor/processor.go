@@ -43,29 +43,35 @@ type Processor struct {
 	processed  int64
 }
 
+type ScanInfo struct {
+	Exists   bool
+	IsFolder bool
+}
+
 func (p *Processor) Add(scans ...autoscan.Scan) error {
 	if len(p.anchors) > 0 {
 		// forget rclone VFS cache
+		infoMap := make(map[string]ScanInfo, len(scans))
 		uniqueness := make(map[string]struct{}, len(scans))
 		args := make([]string, 0, len(scans))
-		for i, scan := range scans {
+		for _, scan := range scans {
 			if scan.Path == "" {
 				continue
 			}
-			scans[i].IsFolder, scans[i].Exists = false, false
+			info := ScanInfo{Exists: false, IsFolder: false}
 			folder, relativePath := scan.Folder, scan.Path
 			for {
-				if info, err := os.Stat(folder); os.IsNotExist(err) {
+				if fileInfo, err := os.Stat(folder); os.IsNotExist(err) {
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
 					continue
-				} else if info.IsDir() {
+				} else if fileInfo.IsDir() {
 					if folder == scan.Folder {
-						scans[i].IsFolder, scans[i].Exists = true, true
+						info.Exists, info.IsFolder = true, true
 					}
 				} else {
 					if folder == scan.Folder {
-						scans[i].Exists = true
+						info.Exists = true
 					}
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
@@ -73,7 +79,7 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 				if _, ok := uniqueness[relativePath]; !ok {
 					uniqueness[relativePath] = struct{}{}
 					args = append(args, relativePath)
-					if scans[i].IsFolder {
+					if info.IsFolder {
 						// refresh on parent as well incase the folder was trashed
 						parent := filepath.Dir(relativePath)
 						if _, ok = uniqueness[parent]; !ok {
@@ -82,6 +88,7 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 						}
 					}
 				}
+				infoMap[scan.Folder] = info
 				break
 			}
 		}
@@ -92,16 +99,16 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 		uniqueness = make(map[string]struct{}, len(scans))
 		result := make([]autoscan.Scan, 0, len(scans))
 		for _, scan := range scans {
-			if info, err := os.Stat(scan.Folder); os.IsNotExist(err) {
-				if !scan.Exists {
-					// the item never exists
+			if info, ok := infoMap[scan.Folder]; ok {
+				if info.Exists {
+					if !info.IsFolder {
+						scan.Folder = filepath.Dir(scan.Folder)
+					}
+				} else if fileInfo, err := os.Stat(scan.Folder); os.IsNotExist(err) {
 					continue
-				} else if !scan.IsFolder {
-					// a file was trashed
+				} else if !fileInfo.IsDir() {
 					scan.Folder = filepath.Dir(scan.Folder)
 				}
-			} else if !info.IsDir() {
-				scan.Folder = filepath.Dir(scan.Folder)
 			}
 			if _, ok := uniqueness[scan.Folder]; ok {
 				continue
