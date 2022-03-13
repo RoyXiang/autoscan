@@ -66,15 +66,8 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 					folder = filepath.Dir(folder)
 					relativePath = filepath.Dir(relativePath)
 					continue
-				} else if fileInfo.IsDir() {
-					if folder == scan.Folder {
-						info.Exists, info.IsFolder = true, true
-					}
-				} else {
-					if folder == scan.Folder {
-						info.Exists = true
-					}
-					arg = filepath.Dir(relativePath)
+				} else if folder == scan.Folder {
+					info.Exists, info.IsFolder = true, fileInfo.IsDir()
 				}
 				infoMap[scan.Folder] = info
 				if _, ok := uniqueness[arg]; ok {
