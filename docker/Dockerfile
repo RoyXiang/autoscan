@@ -1,24 +1,27 @@
-FROM sc4h/alpine-s6overlay:3.12
+FROM golang:1.17 AS builder
 
-ARG TARGETOS
-ARG TARGETARCH
-ARG TARGETVARIANT
+ARG \
+    COMMIT \
+    TIMESTAMP \
+    VERSION
 
-ENV \
-  PATH="/app/autoscan:${PATH}" \
-  AUTOSCAN_CONFIG="/config/config.yml" \
-  AUTOSCAN_DATABASE="/config/autoscan.db" \
-  AUTOSCAN_LOG="/config/activity.log" \
-  AUTOSCAN_VERBOSITY="0"
+ENV CGO_ENABLED=0
 
-# Binary
-COPY ["dist/autoscan_${TARGETOS}_${TARGETARCH}${TARGETVARIANT:+_7}/autoscan", "/app/autoscan/autoscan"]
+WORKDIR /go/src/github.com/cloudbox/autoscan/
 
-# Add root files
-COPY ["docker/run", "/etc/services.d/autoscan/run"]
+COPY . .
 
-# Volume
-VOLUME ["/config"]
+RUN go build -v -trimpath \
+        -ldflags "-s -w -X 'main.Version=${VERSION}' -X 'main.GitCommit=${COMMIT}' -X 'main.Timestamp=${TIMESTAMP}'" \
+        -o /go/bin/autoscan \
+        ./cmd/autoscan
 
-# Port
+FROM gcr.io/distroless/base-debian11:nonroot
+
+COPY --from=builder --chown=nonroot /go/bin/autoscan /usr/local/bin/
+
+USER nonroot
+
 EXPOSE 3030
+
+ENTRYPOINT ["/usr/local/bin/autoscan"]
