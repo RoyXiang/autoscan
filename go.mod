@@ -17,7 +17,7 @@ require (
 	github.com/rs/zerolog v1.26.1
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
 	golang.org/x/tools v0.1.9 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
