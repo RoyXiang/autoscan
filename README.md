@@ -142,7 +142,7 @@ triggers:
       - from: ^/Media/
         to: /mnt/unionfs/Media/
     # Drives only need to be given when Drive-specific rewrites are used
-    drives: 
+    drives:
       - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
         rewrite: # Drive-specific rewrite (has priority over global rewrite)
           - from: ^/TV/
@@ -233,7 +233,7 @@ triggers:
       - from: ^/Media/
         to: /mnt/unionfs/Media/
     # Drives only need to be given when Drive-specific rewrites are used
-    drives: 
+    drives:
       - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
         rewrite: # Drive-specific rewrite (has priority over global rewrite)
           - from: ^/TV/
