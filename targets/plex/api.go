@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type apiClient struct {
@@ -147,7 +148,7 @@ func (c apiClient) Libraries() ([]library, error) {
 
 func (c apiClient) Scan(path string, libraryID int) error {
 	reqURL := autoscan.JoinURL(c.baseURL, "library", "sections", strconv.Itoa(libraryID), "refresh")
-	req, err := http.NewRequest("PUT", reqURL, nil)
+	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}

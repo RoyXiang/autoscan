@@ -1,4 +1,4 @@
-package lidarr
+package readarr
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ type Config struct {
 	Verbosity string             `yaml:"verbosity"`
 }
 
-// New creates an autoscan-compatible HTTP Trigger for Lidarr webhooks.
+// New creates an autoscan-compatible HTTP Trigger for Readarr webhooks.
 func New(c Config) (autoscan.HTTPTrigger, error) {
 	rewriter, err := autoscan.NewRewriter(c.Rewrite)
 	if err != nil {
@@ -43,20 +43,20 @@ type handler struct {
 	callback autoscan.ProcessorFunc
 }
 
-type lidarrEvent struct {
+type readarrEvent struct {
 	Type    string `json:"eventType"`
 	Upgrade bool   `json:"isUpgrade"`
 
 	Files []struct {
 		Path string
-	} `json:"trackFiles"`
+	} `json:"bookFiles"`
 }
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var err error
 	l := hlog.FromRequest(r)
 
-	event := new(lidarrEvent)
+	event := new(readarrEvent)
 	err = json.NewDecoder(r.Body).Decode(event)
 	if err != nil {
 		l.Error().Err(err).Msg("Failed decoding request")
@@ -72,6 +72,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Only handle test and download. Everything else is ignored.
 	if !strings.EqualFold(event.Type, "Download") || len(event.Files) == 0 {
 		l.Error().Msg("Required fields are missing")
 		rw.WriteHeader(http.StatusBadRequest)

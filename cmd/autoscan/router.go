@@ -8,14 +8,16 @@ import (
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
 	"github.com/cloudbox/autoscan/processor"
 	"github.com/cloudbox/autoscan/triggers/a_train"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/manual"
 	"github.com/cloudbox/autoscan/triggers/radarr"
+	"github.com/cloudbox/autoscan/triggers/readarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 func pattern(name string) string {
@@ -88,6 +90,15 @@ func getRouter(c config, proc *processor.Processor) chi.Router {
 
 		for _, t := range c.Triggers.Radarr {
 			trigger, err := radarr.New(t)
+			if err != nil {
+				log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
+			}
+
+			r.Post(pattern(t.Name), trigger(proc.Add).ServeHTTP)
+		}
+
+		for _, t := range c.Triggers.Readarr {
+			trigger, err := readarr.New(t)
 			if err != nil {
 				log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
 			}

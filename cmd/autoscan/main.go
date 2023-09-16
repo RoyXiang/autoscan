@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -29,6 +30,7 @@ import (
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/manual"
 	"github.com/cloudbox/autoscan/triggers/radarr"
+	"github.com/cloudbox/autoscan/triggers/readarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 
 	// sqlite3 driver
@@ -37,6 +39,7 @@ import (
 
 type config struct {
 	// General configuration
+	Host       []string      `yaml:"host"`
 	Port       int           `yaml:"port"`
 	MinimumAge time.Duration `yaml:"minimum-age"`
 	ScanDelay  time.Duration `yaml:"scan-delay"`
@@ -57,6 +60,7 @@ type config struct {
 		Inotify []inotify.Config `yaml:"inotify"`
 		Lidarr  []lidarr.Config  `yaml:"lidarr"`
 		Radarr  []radarr.Config  `yaml:"radarr"`
+		Readarr []readarr.Config `yaml:"readarr"`
 		Sonarr  []sonarr.Config  `yaml:"sonarr"`
 	} `yaml:"triggers"`
 
@@ -171,6 +175,7 @@ func main() {
 		MinimumAge: 10 * time.Minute,
 		ScanDelay:  5 * time.Second,
 		ScanStats:  1 * time.Hour,
+		Host:       []string{""},
 		Port:       3030,
 	}
 
@@ -243,20 +248,31 @@ func main() {
 	// http triggers
 	router := getRouter(c, proc)
 
-	go func() {
-		log.Info().Msgf("Starting server on port %d", c.Port)
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), router); err != nil {
-			log.Fatal().Err(err).Msg("Failed starting web server")
-		}
-	}()
+	for _, h := range c.Host {
+		go func(host string) {
+			addr := host
+			if !strings.Contains(addr, ":") {
+				addr = fmt.Sprintf("%s:%d", host, c.Port)
+			}
+
+			log.Info().Msgf("Starting server on %s", addr)
+			if err := http.ListenAndServe(addr, router); err != nil {
+				log.Fatal().
+					Str("addr", addr).
+					Err(err).
+					Msg("Failed starting web server")
+			}
+		}(h)
+	}
 
 	log.Info().
 		Int("manual", 1).
 		Int("bernard", len(c.Triggers.Bernard)).
 		Int("inotify", len(c.Triggers.Inotify)).
 		Int("lidarr", len(c.Triggers.Lidarr)).
-		Int("sonarr", len(c.Triggers.Sonarr)).
 		Int("radarr", len(c.Triggers.Radarr)).
+		Int("readarr", len(c.Triggers.Readarr)).
+		Int("sonarr", len(c.Triggers.Sonarr)).
 		Msg("Initialised triggers")
 
 	// targets

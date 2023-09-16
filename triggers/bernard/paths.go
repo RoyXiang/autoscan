@@ -2,11 +2,13 @@ package bernard
 
 import (
 	"fmt"
-	"github.com/cloudbox/autoscan"
+	"path/filepath"
+
 	"github.com/l3uddz/bernard"
 	"github.com/l3uddz/bernard/datastore"
 	"github.com/l3uddz/bernard/datastore/sqlite"
-	"path/filepath"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type Paths struct {
